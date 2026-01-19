@@ -1,0 +1,474 @@
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+type ViewState = "cart" | "payment";
+
+const CartSheet = () => {
+  const { items, totalItems, totalPrice, updateQuantity, removeFromCart, isLoading, clearCart } = useCart();
+  const { user, isProfileComplete, profile } = useAuth();
+  const navigate = useNavigate();
+  
+  const [view, setView] = useState<ViewState>("cart");
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod");
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const UPI_ID = "rehanaparveen9553@ybl";
+
+  const handleProceedToPayment = () => {
+    if (items.length === 0) return;
+    
+    // Check if user is logged in
+    if (!user) {
+      setIsOpen(false);
+      navigate('/auth', { 
+        state: { 
+          returnTo: '/',
+          message: 'Please login or create an account to continue' 
+        }
+      });
+      return;
+    }
+    
+    // Check if profile is complete
+    if (!isProfileComplete) {
+      setIsOpen(false);
+      navigate('/profile');
+      toast.info('Please complete your profile to place orders');
+      return;
+    }
+    
+    setView("payment");
+  };
+
+  const handleBackToCart = () => {
+    setView("cart");
+    setPaymentMethod("cod");
+    setPaymentScreenshot(null);
+    setScreenshotPreview(null);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please upload an image file");
+        return;
+      }
+      setPaymentScreenshot(file);
+      const reader = new FileReader();
+      reader.onload = () => setScreenshotPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeScreenshot = () => {
+    setPaymentScreenshot(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePlaceOrder = () => {
+    if (items.length === 0) return;
+    
+    if (paymentMethod === "upi" && !paymentScreenshot) {
+      toast.error("Please upload payment screenshot");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    let message = `🛒 *New Order*\n\n`;
+    message += `*Customer:* ${profile?.full_name}\n`;
+    message += `*Phone:* ${profile?.phone}\n`;
+    message += `*Email:* ${profile?.email}\n\n`;
+    message += `*Payment Method:* ${paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment (UPI)"}\n\n`;
+    message += `*Order Details:*\n`;
+    
+    items.forEach((item, index) => {
+      message += `${index + 1}. *${item.product.name}*\n`;
+      message += `   Price: ₹${Number(item.product.price).toLocaleString()}\n`;
+      message += `   Quantity: ${item.quantity}\n\n`;
+    });
+    
+    message += `*Total Amount: ₹${totalPrice.toLocaleString()}*\n\n`;
+    
+    if (paymentMethod === "upi") {
+      message += `✅ Payment screenshot uploaded - will share separately\n\n`;
+    }
+    
+    message += `Please confirm the order and share delivery details.`;
+    
+    window.open(`https://wa.me/917680924488?text=${encodeURIComponent(message)}`, '_blank');
+    
+    // Reset state
+    setIsSubmitting(false);
+    setView("cart");
+    setPaymentMethod("cod");
+    setPaymentScreenshot(null);
+    setScreenshotPreview(null);
+    clearCart();
+    setIsOpen(false);
+    toast.success("Order placed! Please complete the conversation on WhatsApp.");
+  };
+
+  const openUPIApp = (app: string) => {
+    switch (app) {
+      case 'phonepe':
+        window.open(`phonepe://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
+        break;
+      case 'gpay':
+        window.open(`tez://upi/pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
+        break;
+      case 'paytm':
+        window.open(`paytmmp://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
+        break;
+      case 'whatsapp':
+        window.open(`https://wa.me/917680924488?text=${encodeURIComponent(`I want to pay ₹${totalPrice} via UPI. Please share payment details.`)}`, '_blank');
+        break;
+      default:
+        window.open(`upi://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
+    }
+  };
+
+  const canPlaceOrder = paymentMethod === "cod" || (paymentMethod === "upi" && paymentScreenshot);
+
+  const getCheckoutButton = () => {
+    if (!user) {
+      return (
+        <Button 
+          size="lg" 
+          className="w-full"
+          onClick={() => {
+            setIsOpen(false);
+            navigate('/auth', { 
+              state: { 
+                returnTo: '/',
+                message: 'Please login or create an account to continue' 
+              }
+            });
+          }}
+        >
+          <LogIn className="h-5 w-5 mr-2" />
+          Login to Checkout
+        </Button>
+      );
+    }
+    
+    if (!isProfileComplete) {
+      return (
+        <Button 
+          size="lg" 
+          className="w-full"
+          onClick={() => {
+            setIsOpen(false);
+            navigate('/profile');
+            toast.info('Please complete your profile to place orders');
+          }}
+        >
+          <UserCircle className="h-5 w-5 mr-2" />
+          Complete Your Profile
+        </Button>
+      );
+    }
+    
+    return (
+      <Button 
+        size="lg" 
+        className="w-full bg-gold hover:bg-gold/90 text-gold-foreground"
+        onClick={handleProceedToPayment}
+      >
+        Proceed to Payment
+      </Button>
+    );
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={(open) => { 
+      setIsOpen(open);
+      if (!open) handleBackToCart(); 
+    }}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gold text-xs font-bold flex items-center justify-center text-slate-900">
+              {totalItems}
+            </span>
+          )}
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
+        {view === "cart" ? (
+          <>
+            {/* Cart View */}
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                Your Cart ({totalItems} items)
+              </SheetTitle>
+            </SheetHeader>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Your cart is empty</p>
+                  <p className="text-sm text-muted-foreground mt-1">Add items to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex gap-3 p-3 bg-secondary/50 rounded-lg">
+                      <div className="w-20 h-24 rounded-md overflow-hidden bg-cream flex-shrink-0">
+                        {item.product.image_url ? (
+                          <img 
+                            src={item.product.image_url} 
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm line-clamp-2">{item.product.name}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.product.category}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-gold font-bold">₹{Number(item.product.price).toLocaleString()}</span>
+                          {item.product.original_price && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              ₹{Number(item.product.original_price).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive hover:text-destructive ml-auto"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {items.length > 0 && (
+              <div className="border-t p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-bold text-lg text-gold">₹{totalPrice.toLocaleString()}</span>
+                </div>
+                {getCheckoutButton()}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Payment View */}
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                Payment
+              </SheetTitle>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <button 
+                onClick={handleBackToCart}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Cart
+              </button>
+
+              <h3 className="font-semibold mb-4">Select Payment Method</h3>
+
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+                {/* Cash on Delivery */}
+                <Label
+                  htmlFor="cod"
+                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    paymentMethod === "cod"
+                      ? "border-gold bg-gold/5"
+                      : "border-border hover:border-gold/50"
+                  }`}
+                >
+                  <RadioGroupItem value="cod" id="cod" />
+                  <div className={`p-2 rounded-full ${paymentMethod === "cod" ? "bg-gold/20" : "bg-secondary"}`}>
+                    <Truck className={`h-5 w-5 ${paymentMethod === "cod" ? "text-gold" : "text-muted-foreground"}`} />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium">Cash on Delivery</span>
+                    <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
+                  </div>
+                </Label>
+
+                {/* Online Payment (UPI) */}
+                <Label
+                  htmlFor="upi"
+                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    paymentMethod === "upi"
+                      ? "border-gold bg-gold/5"
+                      : "border-border hover:border-gold/50"
+                  }`}
+                >
+                  <RadioGroupItem value="upi" id="upi" />
+                  <div className={`p-2 rounded-full ${paymentMethod === "upi" ? "bg-gold/20" : "bg-secondary"}`}>
+                    <Smartphone className={`h-5 w-5 ${paymentMethod === "upi" ? "text-gold" : "text-muted-foreground"}`} />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium">Online Payment (UPI)</span>
+                    <p className="text-sm text-muted-foreground">Pay via PhonePe, GPay, or any UPI app</p>
+                  </div>
+                </Label>
+              </RadioGroup>
+
+              {/* UPI Payment Section */}
+              {paymentMethod === "upi" && (
+                <div className="mt-4 p-4 bg-secondary/30 rounded-lg border animate-fade-up">
+                  <div className="text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">Pay to UPI ID:</p>
+                    <p className="text-lg font-bold text-gold">{UPI_ID}</p>
+                    <p className="text-muted-foreground">Amount: ₹{totalPrice.toLocaleString()}</p>
+                    
+                    <p className="text-sm text-muted-foreground pt-2">Choose your payment app:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={() => openUPIApp('phonepe')}
+                        className="bg-[#5f259f] hover:bg-[#5f259f]/90"
+                      >
+                        PhonePe
+                      </Button>
+                      <Button 
+                        onClick={() => openUPIApp('gpay')}
+                        className="bg-gold hover:bg-gold/90 text-gold-foreground"
+                      >
+                        GPay
+                      </Button>
+                      <Button 
+                        onClick={() => openUPIApp('paytm')}
+                        className="bg-[#00baf2] hover:bg-[#00baf2]/90"
+                      >
+                        Paytm
+                      </Button>
+                      <Button 
+                        onClick={() => openUPIApp('whatsapp')}
+                        className="bg-[#25D366] hover:bg-[#25D366]/90"
+                      >
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Screenshot Upload */}
+                  <div className="mt-6 pt-4 border-t">
+                    <p className="text-sm font-medium mb-3 text-center">Upload Payment Screenshot *</p>
+                    
+                    {screenshotPreview ? (
+                      <div className="relative">
+                        <img 
+                          src={screenshotPreview} 
+                          alt="Payment screenshot" 
+                          className="w-full max-h-48 object-contain rounded-lg border"
+                        />
+                        <button 
+                          onClick={removeScreenshot}
+                          className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="flex items-center justify-center gap-1 mt-2 text-sm text-emerald-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Screenshot uploaded
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-gold/50 transition-colors">
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Click to upload screenshot</span>
+                        <input 
+                          ref={fileInputRef}
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total Amount</span>
+                <span className="font-bold text-lg text-gold">₹{totalPrice.toLocaleString()}</span>
+              </div>
+              <Button 
+                size="lg" 
+                className="w-full"
+                onClick={handlePlaceOrder}
+                disabled={!canPlaceOrder || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    Processing...
+                  </span>
+                ) : (
+                  `Place Order (${paymentMethod === "cod" ? "COD" : "UPI"})`
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+export default CartSheet;
