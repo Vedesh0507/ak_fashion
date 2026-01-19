@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,54 @@ const Checkout = () => {
     address: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load user profile and saved address
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+
+      try {
+        // Load profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone, email')
+          .eq('id', user.id)
+          .single();
+
+        // Load default saved address
+        const { data: savedAddress } = await supabase
+          .from('saved_addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .single();
+
+        // Build full address string from saved address
+        let fullAddress = "";
+        if (savedAddress) {
+          const addressParts = [
+            savedAddress.address_line1,
+            savedAddress.address_line2,
+            savedAddress.city,
+            savedAddress.state,
+            savedAddress.pincode
+          ].filter(Boolean);
+          fullAddress = addressParts.join(", ");
+        }
+
+        setCustomerDetails({
+          name: savedAddress?.full_name || profile?.full_name || "",
+          phone: savedAddress?.phone || profile?.phone || "",
+          email: profile?.email || user.email || "",
+          address: fullAddress,
+        });
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
 
   const isFormValid = () => {
     const hasRequiredFields = 
