@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,20 @@ import { Label } from "@/components/ui/label";
 import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ViewState = "cart" | "payment";
+
+interface SavedAddress {
+  full_name: string;
+  phone: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+}
 
 const CartSheet = () => {
   const { items, totalItems, totalPrice, updateQuantity, removeFromCart, isLoading, clearCart } = useCart();
@@ -22,9 +33,37 @@ const CartSheet = () => {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<SavedAddress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const UPI_ID = "rehanaparveen9553@ybl";
+
+  // Load saved address when user is logged in
+  useEffect(() => {
+    const loadSavedAddress = async () => {
+      if (!user) {
+        setSavedAddress(null);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('saved_addresses')
+          .select('full_name, phone, address_line1, address_line2, city, state, pincode')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .single();
+
+        if (data) {
+          setSavedAddress(data);
+        }
+      } catch (error) {
+        console.error("Error loading saved address:", error);
+      }
+    };
+
+    loadSavedAddress();
+  }, [user]);
 
   const handleProceedToPayment = () => {
     if (items.length === 0) return;
@@ -89,10 +128,24 @@ const CartSheet = () => {
 
     setIsSubmitting(true);
 
+    // Build full address string
+    let fullAddress = "";
+    if (savedAddress) {
+      const addressParts = [
+        savedAddress.address_line1,
+        savedAddress.address_line2,
+        savedAddress.city,
+        savedAddress.state,
+        savedAddress.pincode
+      ].filter(Boolean);
+      fullAddress = addressParts.join(", ");
+    }
+
     let message = `🛒 *New Order*\n\n`;
-    message += `*Customer:* ${profile?.full_name}\n`;
-    message += `*Phone:* ${profile?.phone}\n`;
-    message += `*Email:* ${profile?.email}\n\n`;
+    message += `*Customer:* ${savedAddress?.full_name || profile?.full_name}\n`;
+    message += `*Phone:* ${savedAddress?.phone || profile?.phone}\n`;
+    message += `*Email:* ${profile?.email}\n`;
+    message += `*Delivery Address:* ${fullAddress}\n\n`;
     message += `*Payment Method:* ${paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment (UPI)"}\n\n`;
     message += `*Order Details:*\n`;
     
