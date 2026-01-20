@@ -819,19 +819,24 @@ const ProductDetail = () => {
               {/* Wishlist & Share */}
               <div className="flex items-center gap-4 pt-4 border-t">
                 <Button
-                  variant={isInWishlist(product.id) ? "default" : "outline"}
+                  variant={isInWishlist(product.id, selectedColorVariant?.id) ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
-                    if (isInWishlist(product.id)) {
-                      removeFromWishlist(product.id);
+                    if (isInWishlist(product.id, selectedColorVariant?.id)) {
+                      removeFromWishlist(product.id, selectedColorVariant?.id);
                     } else {
-                      addToWishlist(product.id);
+                      addToWishlist(product.id, selectedColorVariant ? {
+                        id: selectedColorVariant.id,
+                        name: selectedColorVariant.name,
+                        hexCode: selectedColorVariant.hexCode,
+                        image: selectedColorVariant.image
+                      } : undefined);
                     }
                   }}
                   className="flex items-center gap-2"
                 >
-                  <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
-                  {isInWishlist(product.id) ? 'In Wishlist' : 'Add to Wishlist'}
+                  <Heart className={`h-4 w-4 ${isInWishlist(product.id, selectedColorVariant?.id) ? 'fill-current' : ''}`} />
+                  {isInWishlist(product.id, selectedColorVariant?.id) ? 'In Wishlist' : 'Add to Wishlist'}
                 </Button>
                 
                 <span className="text-sm text-muted-foreground flex items-center gap-2">

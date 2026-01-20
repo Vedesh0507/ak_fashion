@@ -78,6 +78,16 @@ const Wishlist = () => {
                         <Heart className="h-12 w-12 text-muted-foreground" />
                       </div>
                     )}
+                    {/* Color variant badge */}
+                    {item.color_variant && (
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm">
+                        <span 
+                          className="w-3 h-3 rounded-full border border-gray-300" 
+                          style={{ backgroundColor: item.color_variant.hexCode }}
+                        />
+                        <span className="text-xs font-medium text-gray-700">{item.color_variant.name}</span>
+                      </div>
+                    )}
                   </div>
                 </Link>
                 <CardContent className="p-4">
@@ -110,7 +120,7 @@ const Wishlist = () => {
                       variant="outline"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => removeFromWishlist(item.product.id)}
+                      onClick={() => removeFromWishlist(item.product.id, item.color_variant_id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

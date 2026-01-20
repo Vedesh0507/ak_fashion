@@ -10,22 +10,30 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { isAnyVariantInWishlist, addToWishlist, removeFromWishlist, items } = useWishlist();
   const { user } = useAuth();
-  const inWishlist = isInWishlist(product.id);
+  const inWishlist = isAnyVariantInWishlist(product.id);
   
   const discount = product.original_price 
     ? Math.round(((Number(product.original_price) - Number(product.price)) / Number(product.original_price)) * 100)
     : 0;
 
+  // Count how many variants of this product are in wishlist
+  const variantsInWishlist = items.filter(item => item.product_id === product.id);
+  const variantCount = variantsInWishlist.length;
+
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (inWishlist) {
+    if (inWishlist && variantCount === 1 && !variantsInWishlist[0].color_variant_id) {
+      // Only remove if there's a single entry without color variant
       removeFromWishlist(product.id);
-    } else {
+    } else if (!inWishlist) {
+      // Add without color variant (user can add specific colors from product detail)
       addToWishlist(product.id);
     }
+    // If there are multiple variants or a variant with color, don't remove from card view
+    // User should go to wishlist page to manage individual variants
   };
 
   return (

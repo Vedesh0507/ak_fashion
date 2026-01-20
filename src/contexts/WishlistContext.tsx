@@ -3,9 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+// Color variant interface for wishlist items
+interface WishlistColorVariant {
+  id: string;
+  name: string;
+  hexCode: string;
+  image: string;
+}
+
 interface WishlistItem {
   id: string;
   product_id: string;
+  color_variant_id?: string;
+  color_variant?: WishlistColorVariant;
   product: {
     id: string;
     name: string;
@@ -19,9 +29,10 @@ interface WishlistItem {
 interface WishlistContextType {
   items: WishlistItem[];
   isLoading: boolean;
-  addToWishlist: (productId: string) => Promise<void>;
-  removeFromWishlist: (productId: string) => Promise<void>;
-  isInWishlist: (productId: string) => boolean;
+  addToWishlist: (productId: string, colorVariant?: WishlistColorVariant) => Promise<void>;
+  removeFromWishlist: (productId: string, colorVariantId?: string) => Promise<void>;
+  isInWishlist: (productId: string, colorVariantId?: string) => boolean;
+  isAnyVariantInWishlist: (productId: string) => boolean;
   totalItems: number;
 }
 
@@ -35,17 +46,29 @@ const isDemoProduct = (productId: string): boolean => {
 // Local storage helpers for demo product wishlist
 const LOCAL_WISHLIST_KEY = 'ak_fashion_local_wishlist';
 
-const getLocalWishlist = (): string[] => {
+interface LocalWishlistEntry {
+  productId: string;
+  colorVariantId?: string;
+  colorVariant?: WishlistColorVariant;
+}
+
+const getLocalWishlist = (): LocalWishlistEntry[] => {
   try {
     const stored = localStorage.getItem(LOCAL_WISHLIST_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    // Handle old format (array of strings)
+    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+      return parsed.map((id: string) => ({ productId: id }));
+    }
+    return parsed;
   } catch {
     return [];
   }
 };
 
-const saveLocalWishlist = (productIds: string[]) => {
-  localStorage.setItem(LOCAL_WISHLIST_KEY, JSON.stringify(productIds));
+const saveLocalWishlist = (entries: LocalWishlistEntry[]) => {
+  localStorage.setItem(LOCAL_WISHLIST_KEY, JSON.stringify(entries));
 };
 
 // Demo product details for local wishlist display
@@ -65,6 +88,46 @@ const DEMO_PRODUCTS: Record<string, WishlistItem['product']> = {
     original_price: 1800,
     image_url: "/placeholder.svg",
     category: "Designer Saree"
+  },
+  "demo-pattu-silk-saree": {
+    id: "demo-pattu-silk-saree",
+    name: "Pattu Silk Saree with Shiny Thread",
+    price: 900,
+    original_price: 1400,
+    image_url: "/placeholder.svg",
+    category: "Designer Saree"
+  },
+  "demo-floral-georgette-saree": {
+    id: "demo-floral-georgette-saree",
+    name: "Floral Georgette Saree",
+    price: 1800,
+    original_price: 2100,
+    image_url: "/placeholder.svg",
+    category: "Designer Saree"
+  },
+  "demo-kundan-georgette-dress": {
+    id: "demo-kundan-georgette-dress",
+    name: "Kundan Georgette Dress",
+    price: 2899,
+    original_price: 3999,
+    image_url: "/placeholder.svg",
+    category: "Dress Material"
+  },
+  "demo-gini-cloth-saree": {
+    id: "demo-gini-cloth-saree",
+    name: "Gini Cloth Saree",
+    price: 1500,
+    original_price: 1700,
+    image_url: "/placeholder.svg",
+    category: "Designer Saree"
+  },
+  "demo-cotton-dupatta-dress": {
+    id: "demo-cotton-dupatta-dress",
+    name: "Cotton Embroidered Dupatta Dress",
+    price: 900,
+    original_price: 1100,
+    image_url: "/placeholder.svg",
+    category: "Dress Material"
   }
 };
 
@@ -80,12 +143,26 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Always load local wishlist for demo products
       const localWishlist = getLocalWishlist();
       const localItems: WishlistItem[] = localWishlist
-        .filter(id => DEMO_PRODUCTS[id])
-        .map(id => ({
-          id: `local-${id}`,
-          product_id: id,
-          product: DEMO_PRODUCTS[id]
-        }));
+        .filter(entry => DEMO_PRODUCTS[entry.productId])
+        .map(entry => {
+          const uniqueId = entry.colorVariantId 
+            ? `local-${entry.productId}-${entry.colorVariantId}` 
+            : `local-${entry.productId}`;
+          
+          // Use color variant image if available
+          const baseProduct = DEMO_PRODUCTS[entry.productId];
+          const productWithImage = entry.colorVariant 
+            ? { ...baseProduct, image_url: entry.colorVariant.image }
+            : baseProduct;
+          
+          return {
+            id: uniqueId,
+            product_id: entry.productId,
+            color_variant_id: entry.colorVariantId,
+            color_variant: entry.colorVariant,
+            product: productWithImage
+          };
+        });
 
       if (!user) {
         // Guest users only see local demo wishlist
@@ -123,12 +200,25 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Error fetching wishlist:', error);
       const localWishlist = getLocalWishlist();
       const localItems: WishlistItem[] = localWishlist
-        .filter(id => DEMO_PRODUCTS[id])
-        .map(id => ({
-          id: `local-${id}`,
-          product_id: id,
-          product: DEMO_PRODUCTS[id]
-        }));
+        .filter(entry => DEMO_PRODUCTS[entry.productId])
+        .map(entry => {
+          const uniqueId = entry.colorVariantId 
+            ? `local-${entry.productId}-${entry.colorVariantId}` 
+            : `local-${entry.productId}`;
+          
+          const baseProduct = DEMO_PRODUCTS[entry.productId];
+          const productWithImage = entry.colorVariant 
+            ? { ...baseProduct, image_url: entry.colorVariant.image }
+            : baseProduct;
+          
+          return {
+            id: uniqueId,
+            product_id: entry.productId,
+            color_variant_id: entry.colorVariantId,
+            color_variant: entry.colorVariant,
+            product: productWithImage
+          };
+        });
       setItems(localItems);
     } finally {
       setIsLoading(false);
@@ -139,11 +229,18 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fetchWishlistItems();
   }, [fetchWishlistItems]);
 
-  const addToWishlist = async (productId: string) => {
+  const addToWishlist = async (productId: string, colorVariant?: WishlistColorVariant) => {
     // Handle demo products (store locally, no auth required)
     if (isDemoProduct(productId)) {
       const localWishlist = getLocalWishlist();
-      if (localWishlist.includes(productId)) {
+      
+      // Check if this specific product + color variant combination exists
+      const alreadyExists = localWishlist.some(entry => 
+        entry.productId === productId && 
+        (colorVariant ? entry.colorVariantId === colorVariant.id : !entry.colorVariantId)
+      );
+      
+      if (alreadyExists) {
         toast.info('Already in wishlist');
         return;
       }
@@ -151,13 +248,31 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Optimistic update
       const demoProduct = DEMO_PRODUCTS[productId];
       if (demoProduct) {
+        const uniqueId = colorVariant 
+          ? `local-${productId}-${colorVariant.id}` 
+          : `local-${productId}`;
+        
+        const productWithImage = colorVariant 
+          ? { ...demoProduct, image_url: colorVariant.image }
+          : demoProduct;
+        
         setItems(prev => [...prev, {
-          id: `local-${productId}`,
+          id: uniqueId,
           product_id: productId,
-          product: demoProduct
+          color_variant_id: colorVariant?.id,
+          color_variant: colorVariant,
+          product: productWithImage
         }]);
-        saveLocalWishlist([...localWishlist, productId]);
-        toast.success('Added to wishlist!');
+        
+        const newEntry: LocalWishlistEntry = {
+          productId,
+          colorVariantId: colorVariant?.id,
+          colorVariant
+        };
+        saveLocalWishlist([...localWishlist, newEntry]);
+        
+        const colorText = colorVariant ? ` (${colorVariant.name})` : '';
+        toast.success(`Added to wishlist!${colorText}`);
       }
       return;
     }
@@ -215,12 +330,20 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const removeFromWishlist = async (productId: string) => {
+  const removeFromWishlist = async (productId: string, colorVariantId?: string) => {
     // Handle demo products
     if (isDemoProduct(productId)) {
       const localWishlist = getLocalWishlist();
-      saveLocalWishlist(localWishlist.filter(id => id !== productId));
-      setItems(prev => prev.filter(item => item.product_id !== productId));
+      const updatedWishlist = localWishlist.filter(entry => 
+        !(entry.productId === productId && 
+          (colorVariantId ? entry.colorVariantId === colorVariantId : !entry.colorVariantId))
+      );
+      saveLocalWishlist(updatedWishlist);
+      
+      setItems(prev => prev.filter(item => 
+        !(item.product_id === productId && 
+          (colorVariantId ? item.color_variant_id === colorVariantId : !item.color_variant_id))
+      ));
       toast.success('Removed from wishlist');
       return;
     }
@@ -250,7 +373,15 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const isInWishlist = (productId: string) => {
+  const isInWishlist = (productId: string, colorVariantId?: string) => {
+    return items.some(item => 
+      item.product_id === productId && 
+      (colorVariantId ? item.color_variant_id === colorVariantId : !item.color_variant_id)
+    );
+  };
+
+  // Check if any variant of a product is in wishlist (for product card display)
+  const isAnyVariantInWishlist = (productId: string) => {
     return items.some(item => item.product_id === productId);
   };
 
@@ -263,6 +394,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       addToWishlist,
       removeFromWishlist,
       isInWishlist,
+      isAnyVariantInWishlist,
       totalItems
     }}>
       {children}
