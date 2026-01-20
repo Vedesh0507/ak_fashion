@@ -404,47 +404,27 @@ const CartSheet = () => {
                   <div className="text-center space-y-3">
                     <p className="text-lg font-bold text-gold">Amount: ₹{totalPrice.toLocaleString()}</p>
                     
-                    <p className="text-sm font-medium pt-2">Pay directly via UPI app:</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button 
-                        onClick={() => window.open(`phonepe://pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
-                        className="bg-[#5f259f] hover:bg-[#5f259f]/90 text-white"
-                      >
-                        PhonePe
-                      </Button>
-                      <Button 
-                        onClick={() => window.open(`tez://upi/pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
-                        className="bg-[#4285F4] hover:bg-[#4285F4]/90 text-white"
-                      >
-                        GPay
-                      </Button>
-                      <Button 
-                        onClick={() => window.open(`paytmmp://pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
-                        className="bg-[#00baf2] hover:bg-[#00baf2]/90 text-white"
-                      >
-                        Paytm
-                      </Button>
-                    </div>
-                    
-                    <div className="relative py-3">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-secondary/30 px-2 text-muted-foreground">Or scan QR code</span>
-                      </div>
-                    </div>
-                    
                     {/* QR Code Image */}
-                    <div className="bg-white p-3 rounded-lg inline-block mx-auto">
+                    <div className="bg-white p-4 rounded-lg inline-block mx-auto shadow-md">
                       <img 
                         src={phonepeQR} 
                         alt="Payment QR Code" 
-                        className="w-40 h-40 object-contain mx-auto"
+                        className="w-52 h-52 object-contain mx-auto"
                       />
                     </div>
                     
-                    <p className="text-xs text-muted-foreground">After payment, take a screenshot</p>
+                    <div className="bg-gold/10 p-3 rounded-lg text-sm space-y-2">
+                      <p className="font-semibold text-gold">How to Pay:</p>
+                      <p>1. Open <strong>PhonePe / GPay / Paytm</strong> app</p>
+                      <p>2. Tap on <strong>"Scan QR"</strong> option</p>
+                      <p>3. Scan the QR code above</p>
+                      <p>4. Enter amount: <strong className="text-gold">₹{totalPrice.toLocaleString()}</strong></p>
+                      <p>5. Complete payment & <strong>take screenshot</strong></p>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground pt-2">
+                      Pay to: <strong>MOHAMMAD REHANA PARVEEN</strong>
+                    </p>
                   </div>
 
                   {/* Screenshot Upload */}
