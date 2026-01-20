@@ -100,7 +100,7 @@ export const PaymentMethodSelector = ({ value, onChange }: PaymentMethodSelector
                         Scan with PhonePe, Google Pay, Paytm or any UPI app
                       </p>
                       <p className="text-xs font-medium text-gold">
-                        UPI ID: MOHAMMAD REHANA PARVEEN
+                        UPI ID: 8897393151@ybl (AK Fashion Hub)
                       </p>
                     </div>
                     <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">

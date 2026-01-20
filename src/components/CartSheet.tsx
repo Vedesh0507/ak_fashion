@@ -423,7 +423,7 @@ const CartSheet = () => {
                     </div>
                     
                     <p className="text-xs text-muted-foreground pt-2">
-                      Pay to: <strong>MOHAMMAD REHANA PARVEEN</strong>
+                      Pay to: <strong>AK Fashion Hub</strong> | UPI: <strong>8897393151@ybl</strong>
                     </p>
                   </div>
 
