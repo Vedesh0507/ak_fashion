@@ -4,11 +4,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle, QrCode } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import phonepeQR from "@/assets/phonepe-qr.jpeg";
 
 type ViewState = "cart" | "payment";
 
@@ -35,8 +36,6 @@ const CartSheet = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [savedAddress, setSavedAddress] = useState<SavedAddress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const UPI_ID = "rehanaparveen9553@ybl";
 
   // Load saved address when user is logged in
   useEffect(() => {
@@ -174,25 +173,6 @@ const CartSheet = () => {
     clearCart();
     setIsOpen(false);
     toast.success("Order placed! Please complete the conversation on WhatsApp.");
-  };
-
-  const openUPIApp = (app: string) => {
-    switch (app) {
-      case 'phonepe':
-        window.open(`phonepe://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
-        break;
-      case 'gpay':
-        window.open(`tez://upi/pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
-        break;
-      case 'paytm':
-        window.open(`paytmmp://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
-        break;
-      case 'whatsapp':
-        window.open(`https://wa.me/917680924488?text=${encodeURIComponent(`I want to pay ₹${totalPrice} via UPI. Please share payment details.`)}`, '_blank');
-        break;
-      default:
-        window.open(`upi://pay?pa=${UPI_ID}&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank');
-    }
   };
 
   const canPlaceOrder = paymentMethod === "cod" || (paymentMethod === "upi" && paymentScreenshot);
@@ -422,36 +402,27 @@ const CartSheet = () => {
               {paymentMethod === "upi" && (
                 <div className="mt-4 p-4 bg-secondary/30 rounded-lg border animate-fade-up">
                   <div className="text-center space-y-3">
-                    <p className="text-sm text-muted-foreground">Pay to UPI ID:</p>
-                    <p className="text-lg font-bold text-gold">{UPI_ID}</p>
-                    <p className="text-muted-foreground">Amount: ₹{totalPrice.toLocaleString()}</p>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <QrCode className="h-5 w-5 text-gold" />
+                      <p className="font-semibold">Scan QR Code to Pay</p>
+                    </div>
                     
-                    <p className="text-sm text-muted-foreground pt-2">Choose your payment app:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        onClick={() => openUPIApp('phonepe')}
-                        className="bg-[#5f259f] hover:bg-[#5f259f]/90"
-                      >
-                        PhonePe
-                      </Button>
-                      <Button 
-                        onClick={() => openUPIApp('gpay')}
-                        className="bg-gold hover:bg-gold/90 text-gold-foreground"
-                      >
-                        GPay
-                      </Button>
-                      <Button 
-                        onClick={() => openUPIApp('paytm')}
-                        className="bg-[#00baf2] hover:bg-[#00baf2]/90"
-                      >
-                        Paytm
-                      </Button>
-                      <Button 
-                        onClick={() => openUPIApp('whatsapp')}
-                        className="bg-[#25D366] hover:bg-[#25D366]/90"
-                      >
-                        WhatsApp
-                      </Button>
+                    {/* QR Code Image */}
+                    <div className="bg-white p-3 rounded-lg inline-block mx-auto">
+                      <img 
+                        src={phonepeQR} 
+                        alt="Payment QR Code" 
+                        className="w-48 h-48 object-contain mx-auto"
+                      />
+                    </div>
+                    
+                    <p className="text-lg font-bold text-gold">Amount: ₹{totalPrice.toLocaleString()}</p>
+                    
+                    <div className="text-sm text-muted-foreground space-y-1 pt-2">
+                      <p>1. Open any UPI app (PhonePe, GPay, Paytm)</p>
+                      <p>2. Scan the QR code above</p>
+                      <p>3. Enter amount: <span className="font-bold text-foreground">₹{totalPrice.toLocaleString()}</span></p>
+                      <p>4. Complete payment & take screenshot</p>
                     </div>
                   </div>
 
