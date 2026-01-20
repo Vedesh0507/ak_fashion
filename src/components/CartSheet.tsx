@@ -402,9 +402,37 @@ const CartSheet = () => {
               {paymentMethod === "upi" && (
                 <div className="mt-4 p-4 bg-secondary/30 rounded-lg border animate-fade-up">
                   <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <QrCode className="h-5 w-5 text-gold" />
-                      <p className="font-semibold">Scan QR Code to Pay</p>
+                    <p className="text-lg font-bold text-gold">Amount: ₹{totalPrice.toLocaleString()}</p>
+                    
+                    <p className="text-sm font-medium pt-2">Pay directly via UPI app:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button 
+                        onClick={() => window.open(`phonepe://pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
+                        className="bg-[#5f259f] hover:bg-[#5f259f]/90 text-white"
+                      >
+                        PhonePe
+                      </Button>
+                      <Button 
+                        onClick={() => window.open(`tez://upi/pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
+                        className="bg-[#4285F4] hover:bg-[#4285F4]/90 text-white"
+                      >
+                        GPay
+                      </Button>
+                      <Button 
+                        onClick={() => window.open(`paytmmp://pay?pa=rehanaparveen9553@ybl&pn=AK Fashion Hub&am=${totalPrice}&cu=INR`, '_blank')}
+                        className="bg-[#00baf2] hover:bg-[#00baf2]/90 text-white"
+                      >
+                        Paytm
+                      </Button>
+                    </div>
+                    
+                    <div className="relative py-3">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-secondary/30 px-2 text-muted-foreground">Or scan QR code</span>
+                      </div>
                     </div>
                     
                     {/* QR Code Image */}
@@ -412,18 +440,11 @@ const CartSheet = () => {
                       <img 
                         src={phonepeQR} 
                         alt="Payment QR Code" 
-                        className="w-48 h-48 object-contain mx-auto"
+                        className="w-40 h-40 object-contain mx-auto"
                       />
                     </div>
                     
-                    <p className="text-lg font-bold text-gold">Amount: ₹{totalPrice.toLocaleString()}</p>
-                    
-                    <div className="text-sm text-muted-foreground space-y-1 pt-2">
-                      <p>1. Open any UPI app (PhonePe, GPay, Paytm)</p>
-                      <p>2. Scan the QR code above</p>
-                      <p>3. Enter amount: <span className="font-bold text-foreground">₹{totalPrice.toLocaleString()}</span></p>
-                      <p>4. Complete payment & take screenshot</p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">After payment, take a screenshot</p>
                   </div>
 
                   {/* Screenshot Upload */}
