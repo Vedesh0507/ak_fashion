@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -22,6 +22,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const { signIn, signUp, user, isProfileComplete } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,12 +125,77 @@ const Auth = () => {
         });
       }
     } else {
-      toast({
-        title: 'Account Created!',
-        description: 'You have successfully signed up.',
-      });
+      // Show email confirmation screen
+      setRegisteredEmail(email);
+      setShowEmailConfirmation(true);
+      // Clear form
+      setEmail('');
+      setPassword('');
+      setFullName('');
+      setPhone('');
     }
   };
+
+  // Email Confirmation Screen
+  if (showEmailConfirmation) {
+    return (
+      <div className="min-h-screen bg-gradient-cream flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-medium">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+              <Mail className="h-8 w-8 text-emerald-600" />
+            </div>
+            <CardTitle className="text-2xl font-serif text-primary">Check Your Email</CardTitle>
+            <CardDescription className="text-base mt-2">
+              We've sent a confirmation link to:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-secondary/50 rounded-lg p-4 text-center">
+              <p className="font-medium text-lg break-all">{registeredEmail}</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <CheckCircle2 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-800 dark:text-blue-200">
+                  <p className="font-medium">Next Steps:</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-1">
+                    <li>Open your email inbox</li>
+                    <li>Find the email from AK Fashion Hub</li>
+                    <li>Click the <strong>"Confirm your email"</strong> link</li>
+                    <li>Come back here and sign in</li>
+                  </ol>
+                </div>
+              </div>
+              
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <strong>💡 Tip:</strong> Check your spam/junk folder if you don't see the email in your inbox.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  setShowEmailConfirmation(false);
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Back to Sign In
+              </Button>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Already confirmed? Click above to sign in with your credentials.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-cream flex items-center justify-center p-4">
