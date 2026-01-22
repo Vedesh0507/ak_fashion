@@ -4,12 +4,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle, QrCode } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Truck, Smartphone, Upload, X, CheckCircle2, LogIn, UserCircle, QrCode, Lock } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import phonepeQR from "@/assets/phonepe-qr.jpeg";
+import { DynamicUPIQR } from "@/components/checkout/DynamicUPIQR";
+import { UPI_CONFIG } from "@/lib/upi-payment";
 
 type ViewState = "cart" | "payment";
 
@@ -402,28 +403,35 @@ const CartSheet = () => {
               {paymentMethod === "upi" && (
                 <div className="mt-4 p-4 bg-secondary/30 rounded-lg border animate-fade-up">
                   <div className="text-center space-y-3">
-                    <p className="text-lg font-bold text-gold">Amount: ₹{totalPrice.toLocaleString()}</p>
+                    {/* Amount Display - LOCKED */}
+                    <div className="bg-gold/10 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Amount to Pay</p>
+                      <p className="text-2xl font-bold text-gold">₹{totalPrice.toLocaleString()}</p>
+                      <div className="flex items-center justify-center gap-1 mt-1 text-xs text-muted-foreground">
+                        <Lock className="h-3 w-3" />
+                        <span>Amount is locked in QR</span>
+                      </div>
+                    </div>
                     
-                    {/* QR Code Image */}
-                    <div className="bg-white p-4 rounded-lg inline-block mx-auto shadow-md">
-                      <img 
-                        src={phonepeQR} 
-                        alt="Payment QR Code" 
-                        className="w-52 h-52 object-contain mx-auto"
+                    {/* Dynamic QR Code */}
+                    <div className="flex justify-center py-2">
+                      <DynamicUPIQR
+                        amount={totalPrice}
+                        size={180}
                       />
                     </div>
                     
-                    <div className="bg-gold/10 p-3 rounded-lg text-sm space-y-2">
-                      <p className="font-semibold text-gold">How to Pay:</p>
-                      <p>1. Open <strong>PhonePe / GPay / Paytm</strong> app</p>
-                      <p>2. Tap on <strong>"Scan QR"</strong> option</p>
-                      <p>3. Scan the QR code above</p>
-                      <p>4. Enter amount: <strong className="text-gold">₹{totalPrice.toLocaleString()}</strong></p>
-                      <p>5. Complete payment & <strong>take screenshot</strong></p>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg text-sm space-y-1 text-left">
+                      <p className="font-semibold text-emerald-700 dark:text-emerald-400">How to Pay:</p>
+                      <p className="text-emerald-600 dark:text-emerald-300">1. Open <strong>PhonePe / GPay / Paytm</strong> app</p>
+                      <p className="text-emerald-600 dark:text-emerald-300">2. Tap on <strong>"Scan QR"</strong> option</p>
+                      <p className="text-emerald-600 dark:text-emerald-300">3. Scan the QR code above</p>
+                      <p className="text-emerald-600 dark:text-emerald-300">4. Amount <strong className="text-gold">₹{totalPrice.toLocaleString()}</strong> will be pre-filled</p>
+                      <p className="text-emerald-600 dark:text-emerald-300">5. Complete payment & <strong>take screenshot</strong></p>
                     </div>
                     
                     <p className="text-xs text-muted-foreground pt-2">
-                      Pay to: <strong>AK Fashion Hub</strong> | UPI: <strong>8897393151@ybl</strong>
+                      Pay to: <strong>{UPI_CONFIG.MERCHANT_NAME}</strong> | UPI: <strong>{UPI_CONFIG.UPI_ID}</strong>
                     </p>
                   </div>
 
