@@ -54,16 +54,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
             <ShoppingBag className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          <span className="bg-primary/90 text-primary-foreground text-xs px-3 py-1 rounded-full font-medium">
-            {product.category}
-          </span>
-          {discount > 0 && (
-            <span className="bg-emerald-600 text-white text-xs px-2 py-1 rounded-full font-bold">
-              {discount}% OFF
-            </span>
-          )}
-        </div>
         
         {/* Wishlist button */}
         <button
@@ -96,13 +86,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <h3 className="font-serif text-base md:text-lg font-semibold text-foreground mb-1 line-clamp-2 min-h-[2.5rem]">
           {product.name}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-gold font-bold text-lg md:text-xl">₹{Number(product.price).toLocaleString()}</p>
           {product.original_price && (
             <p className="text-muted-foreground text-sm line-through">
               ₹{Number(product.original_price).toLocaleString()}
             </p>
           )}
+          {discount > 0 && (
+            <span className="bg-emerald-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+              {discount}% OFF
+            </span>
+          )}
+        </div>
+        <div className="mt-2">
+          <span className="bg-primary/90 text-primary-foreground text-xs px-3 py-1 rounded-full font-medium">
+            {product.category}
+          </span>
         </div>
       </div>
     </Link>
