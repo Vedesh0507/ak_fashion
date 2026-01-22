@@ -589,12 +589,6 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {product.description && (
-                <p className="text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              )}
-
               {/* Color Variants Selection (Amazon/Myntra style) */}
               {hasColorVariants && (
                 <div className="space-y-4">
@@ -695,6 +689,12 @@ const ProductDetail = () => {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {product.description && (
+                <p className="text-muted-foreground leading-relaxed">
+                  {product.description}
+                </p>
               )}
 
               {/* Size Selection */}
