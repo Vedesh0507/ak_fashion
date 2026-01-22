@@ -1,23 +1,38 @@
 /**
- * PaymentSection Component
- * ========================
- * Handles payment method selection and UPI payment flow
+ * ============================================================================
+ * PAYMENT SECTION COMPONENT - PRODUCTION-READY UPI INTEGRATION
+ * ============================================================================
+ * 
+ * Handles payment method selection and UPI payment flow for AK Fashion Hub.
  * 
  * FEATURES:
  * - Cash on Delivery option
- * - UPI Payment with QR Code
- * - Deep links for PhonePe, GPay, Paytm
+ * - Dynamic UPI Payment with real-time QR Code generation
+ * - Deep links for PhonePe, GPay, Paytm (amount locked)
  * - Screenshot upload for payment verification
  * - Mobile-first responsive design
  * - Trust badges and secure payment indicators
+ * - Comprehensive error handling
  * 
- * IMPORTANT:
- * - Uses single UPI ID: 8897393151@ybl
+ * PAYMENT FLOW:
+ * 1. Customer selects payment method
+ * 2. For UPI: QR code is generated with exact cart amount
+ * 3. Customer scans QR or clicks app button (amount pre-filled)
+ * 4. Customer uploads payment screenshot
+ * 5. Order is placed with "Pending Verification" status
+ * 
+ * SECURITY:
+ * - Amount is LOCKED (cannot be edited by customer)
+ * - UPI ID is centralized (single source of truth)
+ * - All links use NPCI-approved format
  * - No payment gateway - manual verification via screenshot
- * - Payment marked as "Pending Verification" until admin confirms
+ * 
+ * @author AK Fashion Hub
+ * @version 3.0.0
+ * @lastUpdated January 2026
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -36,31 +51,61 @@ import {
   QrCode,
   IndianRupee,
   Lock,
-  MessageCircle
+  MessageCircle,
+  AlertTriangle,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import phonepeQR from "@/assets/phonepe-qr.jpeg";
 
-// ============================================
-// UPI CONFIGURATION - SINGLE SOURCE OF TRUTH
-// ============================================
-const UPI_CONFIG = {
-  UPI_ID: "8897393151@ybl",
-  MERCHANT_NAME: "AK Fashion Hub",
-  CURRENCY: "INR",
-  SUPPORT_WHATSAPP: "917680924488",
-};
+// Import UPI utilities and components
+import { DynamicUPIQR } from "./DynamicUPIQR";
+import {
+  UPI_CONFIG,
+  UPIAppType,
+  initiateUPIPayment,
+  copyUPIId,
+  getPaymentSupportLink,
+  isMobileDevice,
+  validatePaymentAmount,
+} from "@/lib/upi-payment";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
 
 interface PaymentSectionProps {
+  /** Selected payment method */
   paymentMethod: "cod" | "upi";
+  
+  /** Callback when payment method changes */
   onPaymentMethodChange: (method: "cod" | "upi") => void;
+  
+  /** Uploaded payment screenshot file */
   paymentScreenshot: File | null;
+  
+  /** Callback when screenshot is uploaded/removed */
   onScreenshotChange: (file: File | null) => void;
+  
+  /** Total cart amount (used to generate QR with locked amount) */
   totalAmount: number;
+  
+  /** Optional order ID for transaction reference */
   orderId?: string;
 }
 
-type UPIAppType = "phonepe" | "gpay" | "paytm" | "generic";
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Maximum file size for screenshot (5MB) */
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+/** Allowed file types for screenshot */
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export const PaymentSection = ({
   paymentMethod,
@@ -70,77 +115,70 @@ export const PaymentSection = ({
   totalAmount,
   orderId,
 }: PaymentSectionProps) => {
+  // ============================================
+  // STATE
+  // ============================================
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [copiedUPI, setCopiedUPI] = useState(false);
   const [openingApp, setOpeningApp] = useState<UPIAppType | null>(null);
-
+  const [paymentInitiated, setPaymentInitiated] = useState(false);
+  
   // ============================================
-  // HELPER FUNCTIONS
+  // VALIDATION
   // ============================================
   
-  const isMobileDevice = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-  };
-
-  const generateAppSpecificLink = (app: UPIAppType, amount: number) => {
-    const txnNote = orderId 
-      ? `Order-${orderId.slice(0, 8).toUpperCase()}`
-      : "AK Fashion Hub Order";
-    
-    const encodedName = encodeURIComponent(UPI_CONFIG.MERCHANT_NAME);
-    const encodedNote = encodeURIComponent(txnNote);
-    
-    switch (app) {
-      case "phonepe":
-        return `phonepe://pay?pa=${UPI_CONFIG.UPI_ID}&pn=${encodedName}&am=${amount.toFixed(2)}&cu=${UPI_CONFIG.CURRENCY}&tn=${encodedNote}`;
-      case "gpay":
-        return `gpay://upi/pay?pa=${UPI_CONFIG.UPI_ID}&pn=${encodedName}&am=${amount.toFixed(2)}&cu=${UPI_CONFIG.CURRENCY}&tn=${encodedNote}`;
-      case "paytm":
-        return `paytmmp://pay?pa=${UPI_CONFIG.UPI_ID}&pn=${encodedName}&am=${amount.toFixed(2)}&cu=${UPI_CONFIG.CURRENCY}&tn=${encodedNote}`;
-      default:
-        return `upi://pay?pa=${UPI_CONFIG.UPI_ID}&pn=${encodedName}&am=${amount.toFixed(2)}&cu=${UPI_CONFIG.CURRENCY}&tn=${encodedNote}`;
-    }
-  };
-
-  const getPaymentSupportLink = (amount: number) => {
-    const orderRef = orderId ? orderId.slice(0, 8).toUpperCase() : "NEW";
-    const message = `Hi, I need help with my UPI payment of ₹${amount.toLocaleString()} for Order #${orderRef}`;
-    return `https://wa.me/${UPI_CONFIG.SUPPORT_WHATSAPP}?text=${encodeURIComponent(message)}`;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Validate payment amount before showing payment options.
+   * This ensures QR code can be generated successfully.
+   */
+  const amountValidation = validatePaymentAmount(totalAmount);
+  const isAmountValid = amountValidation.isValid;
+  
+  // ============================================
+  // FILE HANDLING
+  // ============================================
+  
+  /**
+   * Handles screenshot file selection.
+   * Validates file size and type before accepting.
+   */
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File too large", {
-          description: "Please upload an image smaller than 5MB"
-        });
-        return;
-      }
-      
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Invalid file type", {
-          description: "Please upload an image file (PNG, JPG, etc.)"
-        });
-        return;
-      }
-      
-      onScreenshotChange(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      
-      toast.success("Screenshot uploaded!", {
-        description: "Your payment proof has been attached"
+    
+    if (!file) return;
+    
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File too large", {
+        description: "Please upload an image smaller than 5MB"
       });
+      return;
     }
-  };
-
-  const removeScreenshot = () => {
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Invalid file type", {
+        description: "Please upload an image file (PNG, JPG, etc.)"
+      });
+      return;
+    }
+    
+    // Accept the file
+    onScreenshotChange(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    
+    toast.success("Screenshot uploaded!", {
+      description: "Your payment proof has been attached"
+    });
+  }, [onScreenshotChange]);
+  
+  /**
+   * Removes the uploaded screenshot.
+   */
+  const removeScreenshot = useCallback(() => {
     onScreenshotChange(null);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -149,18 +187,25 @@ export const PaymentSection = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
-
+  }, [previewUrl, onScreenshotChange]);
+  
   // ============================================
   // UPI APP HANDLING
   // ============================================
   
-  const handleOpenUPIApp = async (app: UPIAppType) => {
+  /**
+   * Handles opening UPI payment app with locked amount.
+   * Uses the centralized UPI utility for link generation.
+   */
+  const handleOpenUPIApp = useCallback(async (app: UPIAppType) => {
+    // Prevent double clicks
+    if (openingApp) return;
+    
     setOpeningApp(app);
+    setPaymentInitiated(true);
     
-    const isMobile = isMobileDevice();
-    
-    if (!isMobile) {
+    // Check if on mobile
+    if (!isMobileDevice()) {
       toast.info("Scan QR Code", {
         description: "Open your UPI app on mobile and scan the QR code to pay",
         duration: 5000,
@@ -169,11 +214,11 @@ export const PaymentSection = ({
       return;
     }
     
-    const link = generateAppSpecificLink(app, totalAmount);
+    // Initiate payment using centralized utility
+    const result = await initiateUPIPayment(app, totalAmount, orderId);
     
-    if (link) {
-      window.location.href = link;
-      
+    if (result.success) {
+      // Give time for app to open, then show reminder
       setTimeout(() => {
         toast.info("After payment, upload screenshot", {
           description: "Come back here and upload your payment screenshot to confirm",
@@ -183,31 +228,53 @@ export const PaymentSection = ({
       }, 1500);
     } else {
       toast.error("Could not open app", {
-        description: "Please scan the QR code instead"
+        description: result.message
       });
       setOpeningApp(null);
     }
-  };
-
+  }, [openingApp, totalAmount, orderId]);
+  
   // ============================================
   // COPY UPI ID
   // ============================================
   
-  const handleCopyUPI = async () => {
-    try {
-      await navigator.clipboard.writeText(UPI_CONFIG.UPI_ID);
+  /**
+   * Copies UPI ID to clipboard.
+   */
+  const handleCopyUPI = useCallback(async () => {
+    const success = await copyUPIId();
+    
+    if (success) {
       setCopiedUPI(true);
       toast.success("UPI ID copied!", {
         description: "Paste it in your UPI app to pay"
       });
       setTimeout(() => setCopiedUPI(false), 3000);
-    } catch {
+    } else {
       toast.error("Could not copy", {
-        description: "Please manually copy: " + UPI_CONFIG.UPI_ID
+        description: `Please manually copy: ${UPI_CONFIG.UPI_ID}`
       });
     }
-  };
+  }, []);
+  
+  // ============================================
+  // QR ERROR HANDLING
+  // ============================================
+  
+  /**
+   * Handles QR generation errors.
+   */
+  const handleQRError = useCallback((error: string) => {
+    console.error("[Payment] QR generation error:", error);
+    toast.error("QR Code Error", {
+      description: "Could not generate payment QR. Please use UPI ID instead.",
+    });
+  }, []);
 
+  // ============================================
+  // RENDER
+  // ============================================
+  
   return (
     <div className="bg-card rounded-2xl p-6 shadow-card">
       {/* Header with Trust Badge */}
@@ -222,12 +289,30 @@ export const PaymentSection = ({
         </div>
       </div>
 
+      {/* Amount Validation Warning */}
+      {!isAmountValid && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+          <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">
+              Invalid Amount
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-400">
+              {amountValidation.errors.join(". ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Method Selection */}
       <RadioGroup
         value={paymentMethod}
         onValueChange={(value) => onPaymentMethodChange(value as "cod" | "upi")}
         className="space-y-3"
       >
-        {/* Cash on Delivery */}
+        {/* ============================================ */}
+        {/* CASH ON DELIVERY OPTION */}
+        {/* ============================================ */}
         <Label
           htmlFor="cod"
           className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
@@ -252,7 +337,9 @@ export const PaymentSection = ({
           {paymentMethod === "cod" && <CheckCircle2 className="h-5 w-5 text-gold" />}
         </Label>
 
-        {/* Online Payment (UPI) */}
+        {/* ============================================ */}
+        {/* UPI PAYMENT OPTION */}
+        {/* ============================================ */}
         <Label
           htmlFor="upi"
           className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
@@ -278,8 +365,10 @@ export const PaymentSection = ({
         </Label>
       </RadioGroup>
 
-      {/* UPI Payment Details */}
-      {paymentMethod === "upi" && (
+      {/* ============================================ */}
+      {/* UPI PAYMENT DETAILS SECTION */}
+      {/* ============================================ */}
+      {paymentMethod === "upi" && isAmountValid && (
         <div className="mt-6 space-y-6 animate-in slide-in-from-top-4 duration-300">
           
           {/* Trust Badges */}
@@ -295,37 +384,49 @@ export const PaymentSection = ({
             </div>
           </div>
           
-          {/* Amount to Pay */}
+          {/* Amount to Pay - LOCKED */}
           <div className="bg-gradient-to-r from-gold/10 via-gold/5 to-gold/10 rounded-xl p-5 text-center border border-gold/20">
             <p className="text-sm text-muted-foreground mb-1">Total Amount to Pay</p>
             <div className="flex items-center justify-center gap-1">
               <IndianRupee className="h-7 w-7 text-gold" />
               <span className="text-4xl font-bold text-gold">{totalAmount.toLocaleString()}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <div className="flex items-center justify-center gap-1 mt-2 text-xs text-muted-foreground">
+              <Lock className="h-3 w-3" />
+              <span>Amount is locked and cannot be changed</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
               Pay to: <span className="font-medium text-foreground">{UPI_CONFIG.MERCHANT_NAME}</span>
             </p>
           </div>
 
-          {/* QR Code */}
+          {/* ============================================ */}
+          {/* DYNAMIC QR CODE - Amount Embedded */}
+          {/* ============================================ */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-3">
               <QrCode className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm font-medium">Scan QR Code to Pay</p>
             </div>
-            <div className="inline-block p-4 bg-white rounded-2xl shadow-lg border">
-              <img 
-                src={phonepeQR} 
-                alt="Scan to pay via UPI" 
-                className="w-52 h-52 object-contain mx-auto"
+            
+            {/* Dynamic QR Component */}
+            <div className="flex justify-center">
+              <DynamicUPIQR
+                amount={totalAmount}
+                orderId={orderId}
+                size={200}
+                onError={handleQRError}
               />
             </div>
+            
             <p className="text-xs text-muted-foreground mt-3">
               Works with any UPI app • PhonePe, GPay, Paytm, BHIM & more
             </p>
           </div>
 
+          {/* ============================================ */}
           {/* UPI ID with Copy */}
+          {/* ============================================ */}
           <div className="bg-secondary/50 rounded-xl p-4">
             <p className="text-xs text-muted-foreground mb-2 text-center">Or pay using UPI ID</p>
             <div className="flex items-center justify-center gap-2">
@@ -337,6 +438,7 @@ export const PaymentSection = ({
                 size="sm"
                 onClick={handleCopyUPI}
                 className="h-10 w-10 p-0"
+                title="Copy UPI ID"
               >
                 {copiedUPI ? (
                   <Check className="h-4 w-4 text-emerald-600" />
@@ -350,10 +452,13 @@ export const PaymentSection = ({
             </p>
           </div>
 
-          {/* UPI App Buttons */}
+          {/* ============================================ */}
+          {/* UPI App Buttons - Amount Pre-filled */}
+          {/* ============================================ */}
           <div>
             <p className="text-sm font-medium mb-3 text-center">Quick Pay with</p>
             <div className="grid grid-cols-2 gap-3">
+              {/* PhonePe */}
               <Button
                 variant="outline"
                 className="h-14 gap-3 text-left justify-start px-4 hover:border-[#5f259f] hover:bg-[#5f259f]/5"
@@ -367,8 +472,14 @@ export const PaymentSection = ({
                   <p className="font-medium text-sm">PhonePe</p>
                   <p className="text-xs text-muted-foreground">UPI Payment</p>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                {openingApp === "phonepe" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
               </Button>
+              
+              {/* Google Pay */}
               <Button
                 variant="outline"
                 className="h-14 gap-3 text-left justify-start px-4 hover:border-[#4285f4] hover:bg-[#4285f4]/5"
@@ -382,8 +493,14 @@ export const PaymentSection = ({
                   <p className="font-medium text-sm">Google Pay</p>
                   <p className="text-xs text-muted-foreground">UPI Payment</p>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                {openingApp === "gpay" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
               </Button>
+              
+              {/* Paytm */}
               <Button
                 variant="outline"
                 className="h-14 gap-3 text-left justify-start px-4 hover:border-[#00baf2] hover:bg-[#00baf2]/5"
@@ -397,8 +514,14 @@ export const PaymentSection = ({
                   <p className="font-medium text-sm">Paytm</p>
                   <p className="text-xs text-muted-foreground">UPI Payment</p>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                {openingApp === "paytm" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
               </Button>
+              
+              {/* Other UPI Apps */}
               <Button
                 variant="outline"
                 className="h-14 gap-3 text-left justify-start px-4"
@@ -412,7 +535,11 @@ export const PaymentSection = ({
                   <p className="font-medium text-sm">Other UPI</p>
                   <p className="text-xs text-muted-foreground">Any UPI App</p>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                {openingApp === "generic" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
               </Button>
             </div>
             
@@ -424,7 +551,9 @@ export const PaymentSection = ({
             )}
           </div>
 
-          {/* Screenshot Upload */}
+          {/* ============================================ */}
+          {/* SCREENSHOT UPLOAD SECTION */}
+          {/* ============================================ */}
           <div className="border-t pt-6">
             <div className="flex items-center gap-2 mb-3">
               <Upload className="h-4 w-4 text-gold" />
@@ -432,12 +561,14 @@ export const PaymentSection = ({
               <span className="text-xs text-destructive font-medium">* Required</span>
             </div>
             
+            {/* Instructions */}
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
               <p className="text-sm text-amber-800 dark:text-amber-200">
                 <strong>📸 After payment:</strong> Take a screenshot of the payment success screen and upload it below to confirm your order.
               </p>
             </div>
 
+            {/* File Input (Hidden) */}
             <input
               ref={fileInputRef}
               type="file"
@@ -448,6 +579,7 @@ export const PaymentSection = ({
               id="screenshot-upload"
             />
 
+            {/* Upload Area or Preview */}
             {!paymentScreenshot ? (
               <label
                 htmlFor="screenshot-upload"
@@ -473,6 +605,7 @@ export const PaymentSection = ({
                     onClick={removeScreenshot}
                     className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors shadow-lg"
                     type="button"
+                    title="Remove screenshot"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -485,10 +618,12 @@ export const PaymentSection = ({
             )}
           </div>
 
-          {/* Help Section */}
+          {/* ============================================ */}
+          {/* HELP SECTION */}
+          {/* ============================================ */}
           <div className="flex items-center justify-center gap-4 pt-4 border-t">
             <a
-              href={getPaymentSupportLink(totalAmount)}
+              href={getPaymentSupportLink(totalAmount, orderId)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -511,7 +646,9 @@ export const PaymentSection = ({
         </div>
       )}
 
-      {/* COD Info */}
+      {/* ============================================ */}
+      {/* COD INFO SECTION */}
+      {/* ============================================ */}
       {paymentMethod === "cod" && (
         <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800 animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-start gap-3">
@@ -528,3 +665,5 @@ export const PaymentSection = ({
     </div>
   );
 };
+
+export default PaymentSection;
