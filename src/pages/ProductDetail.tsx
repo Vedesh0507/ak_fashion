@@ -491,15 +491,15 @@ const ProductDetail = () => {
         
         <main className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
             <Link to="/" className="hover:text-primary flex items-center gap-1">
               <Home className="h-4 w-4" />
               Home
             </Link>
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 flex-shrink-0" />
             <span className="text-foreground">{product.category}</span>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-foreground truncate max-w-[200px]">{product.name}</span>
+            <ChevronRight className="h-4 w-4 flex-shrink-0" />
+            <span className="text-foreground">{product.name}</span>
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
