@@ -5,11 +5,9 @@ import OurStorySection from "@/components/OurStorySection";
 import BenefitsSection from "@/components/BenefitsSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
-import MobileStickyCTA from "@/components/MobileStickyCTA";
 import TrustBadges from "@/components/TrustBadges";
 import ReviewsCarousel from "@/components/ReviewsCarousel";
 import FAQSection from "@/components/FAQSection";
-import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -22,7 +20,7 @@ const Index = () => {
         <link rel="canonical" href="https://akfashionhub.com" />
       </Helmet>
       
-      <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <div className="min-h-screen bg-background">
         <Header />
         <main>
           <HeroSection />
@@ -35,8 +33,6 @@ const Index = () => {
           <ContactSection />
         </main>
         <Footer />
-        <MobileStickyCTA />
-        <WhatsAppFloatingButton />
       </div>
     </>
   );
