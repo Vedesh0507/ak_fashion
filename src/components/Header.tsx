@@ -5,6 +5,7 @@ import CartSheet from "@/components/CartSheet";
 import ProductSearch from "@/components/ProductSearch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/contexts/WishlistContext";
+import akLogo from "@/assets/ak-fashion-hub-logo.png";
 
 const Header = () => {
   const { user } = useAuth();
@@ -15,12 +16,15 @@ const Header = () => {
       {/* Sticky Header - Logo and Navigation */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Link to="/" className="font-serif text-2xl md:text-3xl font-bold text-primary">
-                AK <span className="text-gold italic">Fashion Hub</span>
-              </Link>
-            </div>
+          <div className="flex items-center justify-between gap-2 md:gap-4">
+            <Link to="/" className="flex items-center flex-shrink-0">
+              <img 
+                src={akLogo} 
+                alt="AK Fashion Hub logo" 
+                className="h-8 sm:h-10 md:h-12 w-auto object-contain"
+                loading="eager"
+              />
+            </Link>
             
             {/* Search Bar - Desktop (in header) */}
             <div className="hidden md:block flex-1 max-w-md mx-4">
