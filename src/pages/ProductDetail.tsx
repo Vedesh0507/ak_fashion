@@ -489,23 +489,23 @@ const ProductDetail = () => {
       <div className="min-h-screen bg-background">
         <Header />
         
-        <main className="container mx-auto px-4 py-4 md:py-6">
+        <main className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4 md:mb-6 flex-wrap">
-            <Link to="/" className="hover:text-primary flex items-center gap-1 flex-shrink-0">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
+            <Link to="/" className="hover:text-primary flex items-center gap-1">
               <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Home</span>
+              Home
             </Link>
             <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            <span className="text-foreground truncate">{product.category}</span>
+            <span className="text-foreground">{product.category}</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            <span className="text-foreground line-clamp-1">{product.name}</span>
+            <span className="text-foreground">{product.name}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Image Gallery */}
             <div className="space-y-4">
-              <div className="relative aspect-square md:aspect-[3/4] rounded-2xl overflow-hidden bg-cream">
+              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-cream">
                 {currentDisplayImage ? (
                   <img
                     src={currentDisplayImage}
