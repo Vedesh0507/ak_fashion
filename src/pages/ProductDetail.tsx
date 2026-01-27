@@ -491,15 +491,15 @@ const ProductDetail = () => {
         
         <main className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
-            <Link to="/" className="hover:text-primary flex items-center gap-1">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 overflow-hidden">
+            <Link to="/" className="hover:text-primary flex items-center gap-1 flex-shrink-0">
               <Home className="h-4 w-4" />
-              Home
+              <span className="hidden sm:inline">Home</span>
             </Link>
             <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            <span className="text-foreground">{product.category}</span>
+            <span className="text-foreground flex-shrink-0 truncate max-w-[80px] sm:max-w-none">{product.category}</span>
             <ChevronRight className="h-4 w-4 flex-shrink-0" />
-            <span className="text-foreground">{product.name}</span>
+            <span className="text-foreground truncate">{product.name}</span>
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -817,7 +817,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Wishlist & Share */}
-              <div className="flex items-center gap-4 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t">
                 <Button
                   variant={isInWishlist(product.id, selectedColorVariant?.id) ? "default" : "outline"}
                   size="sm"
@@ -833,28 +833,30 @@ const ProductDetail = () => {
                       } : undefined);
                     }
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   <Heart className={`h-4 w-4 ${isInWishlist(product.id, selectedColorVariant?.id) ? 'fill-current' : ''}`} />
                   {isInWishlist(product.id, selectedColorVariant?.id) ? 'In Wishlist' : 'Add to Wishlist'}
                 </Button>
                 
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Share:
-                </span>
-                <div className="flex gap-2">
-                  {['whatsapp', 'facebook', 'twitter', 'copy'].map(platform => (
-                    <Button
-                      key={platform}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleShare(platform)}
-                      className="capitalize"
-                    >
-                      {platform === 'copy' ? 'Copy Link' : platform}
-                    </Button>
-                  ))}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Share2 className="h-4 w-4" />
+                    Share:
+                  </span>
+                  <div className="flex gap-1 flex-wrap">
+                    {['whatsapp', 'facebook', 'twitter', 'copy'].map(platform => (
+                      <Button
+                        key={platform}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleShare(platform)}
+                        className="capitalize text-xs px-2"
+                      >
+                        {platform === 'copy' ? 'Copy' : platform}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
