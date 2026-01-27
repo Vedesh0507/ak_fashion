@@ -486,10 +486,10 @@ const ProductDetail = () => {
         <meta name="description" content={product.description || `Shop ${product.name} at AK Fashion Hub`} />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background overflow-x-hidden">
         <Header />
         
-        <main className="container mx-auto px-4 py-6">
+        <main className="container mx-auto px-4 py-6 overflow-x-hidden">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 overflow-hidden">
             <Link to="/" className="hover:text-primary flex items-center gap-1 flex-shrink-0">
