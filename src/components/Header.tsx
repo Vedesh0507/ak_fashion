@@ -5,7 +5,6 @@ import CartSheet from "@/components/CartSheet";
 import ProductSearch from "@/components/ProductSearch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWishlist } from "@/contexts/WishlistContext";
-import akLogo from "@/assets/ak-fashion-hub-logo.png";
 
 const Header = () => {
   const { user } = useAuth();
@@ -19,12 +18,10 @@ const Header = () => {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center">
               <Link to="/" className="flex items-center">
-                <img 
-                  src={akLogo} 
-                  alt="AK Fashion Hub logo" 
-                  className="h-10 md:h-12 w-auto object-contain"
-                  loading="eager"
-                />
+                <span className="text-xl md:text-2xl font-bold">
+                  <span className="text-[#1a365d]">AK</span>
+                  <span className="text-[#d4a853] italic ml-1">Fashion Hub</span>
+                </span>
               </Link>
             </div>
             
