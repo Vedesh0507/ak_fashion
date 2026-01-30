@@ -32,22 +32,22 @@ const HeroSection = () => {
             Quality assured, delivered to your doorstep.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-4">
-            <Button variant="hero" size="xl" asChild>
-              <a href="tel:7680924488">
-                <Phone className="w-5 h-5" />
-                Order Now: 7680924488
-              </a>
-            </Button>
-            <Button variant="whatsapp" size="xl" asChild>
-              <a 
-                href="https://wa.me/917680924488?text=Hi! I'm interested in your collection" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="w-5 h-5" />
-                WhatsApp Order
-              </a>
-            </Button>
+            <a 
+              href="tel:7680924488"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-semibold text-base md:text-lg px-6 md:px-10 py-3 md:py-4 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+            >
+              <Phone className="w-5 h-5" />
+              Order Now: 7680924488
+            </a>
+            <a 
+              href="https://wa.me/917680924488?text=Hi! I'm interested in your collection" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold text-base md:text-lg px-6 md:px-10 py-3 md:py-4 rounded-xl shadow-lg hover:bg-emerald-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+            >
+              <MessageCircle className="w-5 h-5" />
+              WhatsApp Order
+            </a>
           </div>
         </div>
       </div>
