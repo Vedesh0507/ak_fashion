@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 
+// Import demo product images
+import banarasTeal from "@/assets/banaras-saree-teal.jpeg";
+import bandhaniGreen from "@/assets/bandhani-green.jpeg";
+import palluRed from "@/assets/pallu-red.jpeg";
+import floralSilver from "@/assets/floral-silver.jpeg";
+import kundanPink from "@/assets/kundan-pink.jpeg";
+import giniMustardOrange from "@/assets/gini-MustardOrange.jpeg";
+import dupattaBlushPink from "@/assets/dupattu-BlushPink.jpeg";
+
 interface SearchResult {
   id: string;
   name: string;
@@ -12,6 +21,59 @@ interface SearchResult {
   image_url: string | null;
   category: string;
 }
+
+// Demo products for search
+const demoProducts: SearchResult[] = [
+  {
+    id: "demo-banarasi-saree",
+    name: "Banarasi Silk Saree with Zari Work",
+    price: 1500,
+    image_url: banarasTeal,
+    category: "Designer Saree",
+  },
+  {
+    id: "demo-bandhani-saree",
+    name: "Bandhani Saree with Smooth Finish",
+    price: 900,
+    image_url: bandhaniGreen,
+    category: "Daily Wear",
+  },
+  {
+    id: "demo-pattu-silk-saree",
+    name: "Pattu Silk Saree with Shiny Thread",
+    price: 900,
+    image_url: palluRed,
+    category: "Designer Saree",
+  },
+  {
+    id: "demo-floral-georgette-saree",
+    name: "Floral Georgette Saree",
+    price: 1800,
+    image_url: floralSilver,
+    category: "Designer Saree",
+  },
+  {
+    id: "demo-kundan-georgette-dress",
+    name: "Kundan Georgette Dress",
+    price: 1799,
+    image_url: kundanPink,
+    category: "Dress Material",
+  },
+  {
+    id: "demo-gini-cloth-saree",
+    name: "Gini Cloth Saree",
+    price: 1500,
+    image_url: giniMustardOrange,
+    category: "Designer Saree",
+  },
+  {
+    id: "demo-cotton-dupatta-dress",
+    name: "Cotton Embroidered Dupatta Dress",
+    price: 900,
+    image_url: dupattaBlushPink,
+    category: "Dress Material",
+  },
+];
 
 const ProductSearch = () => {
   const [query, setQuery] = useState('');
@@ -40,6 +102,7 @@ const ProductSearch = () => {
 
       setIsLoading(true);
       try {
+        // Search in Supabase database
         const { data, error } = await supabase
           .from('products')
           .select('id, name, price, image_url, category')
@@ -48,9 +111,33 @@ const ProductSearch = () => {
           .limit(6);
 
         if (error) throw error;
-        setResults(data || []);
+        
+        // Also search in demo products
+        const lowerQuery = query.toLowerCase();
+        const matchingDemoProducts = demoProducts.filter(product => 
+          product.name.toLowerCase().includes(lowerQuery) ||
+          product.category.toLowerCase().includes(lowerQuery)
+        );
+        
+        // Combine results (database first, then demo products)
+        const dbResults = data || [];
+        const combinedResults = [...dbResults, ...matchingDemoProducts];
+        
+        // Remove duplicates and limit to 8 results
+        const uniqueResults = combinedResults.filter((product, index, self) => 
+          index === self.findIndex(p => p.id === product.id)
+        ).slice(0, 8);
+        
+        setResults(uniqueResults);
       } catch (error) {
         console.error('Search error:', error);
+        // If database fails, still show demo products
+        const lowerQuery = query.toLowerCase();
+        const matchingDemoProducts = demoProducts.filter(product => 
+          product.name.toLowerCase().includes(lowerQuery) ||
+          product.category.toLowerCase().includes(lowerQuery)
+        );
+        setResults(matchingDemoProducts.slice(0, 8));
       } finally {
         setIsLoading(false);
       }
