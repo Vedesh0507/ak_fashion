@@ -5,8 +5,8 @@ import heroBanner from "@/assets/hero-banner.png";
 const HeroSection = () => {
   return (
     <section className="relative overflow-hidden bg-gradient-hero">
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
+      <div className="absolute inset-0 opacity-5 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, hsl(var(--gold)) 1px, transparent 0)`,
           backgroundSize: '40px 40px'
         }}></div>
