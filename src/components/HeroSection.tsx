@@ -32,22 +32,22 @@ const HeroSection = () => {
             Quality assured, delivered to your doorstep.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-4">
-            <a href="tel:7680924488">
-              <Button variant="hero" size="xl">
+            <Button variant="hero" size="xl" asChild>
+              <a href="tel:7680924488">
                 <Phone className="w-5 h-5" />
                 Order Now: 7680924488
-              </Button>
-            </a>
-            <a 
-              href="https://wa.me/917680924488?text=Hi! I'm interested in your collection" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button variant="whatsapp" size="xl">
+              </a>
+            </Button>
+            <Button variant="whatsapp" size="xl" asChild>
+              <a 
+                href="https://wa.me/917680924488?text=Hi! I'm interested in your collection" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
                 <MessageCircle className="w-5 h-5" />
                 WhatsApp Order
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
         </div>
       </div>
