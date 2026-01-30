@@ -1,5 +1,4 @@
 import { Phone, MapPin, Heart, Clock, Instagram, MessageCircle } from "lucide-react";
-import akLogo from "@/assets/ak-fashion-hub-logo.png";
 
 const Footer = () => {
   return (
@@ -8,12 +7,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
           {/* Brand Section */}
           <div className="text-center md:text-left">
-            <img 
-              src={akLogo} 
-              alt="AK Fashion Hub logo" 
-              className="h-12 w-auto object-contain mx-auto md:mx-0"
-              loading="lazy"
-            />
+            <div className="flex justify-center md:justify-start">
+              <span className="text-2xl font-bold">
+                <span className="text-white">AK</span>
+                <span className="text-[#d4a853] italic ml-1">Fashion Hub</span>
+              </span>
+            </div>
             <p className="text-primary-foreground/70 text-sm mt-3">
               Women's Wear by Rehana Parveen
             </p>

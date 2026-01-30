@@ -10,7 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { ArrowLeft, Mail, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import akLogo from '@/assets/ak-fashion-hub-logo.png';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -206,12 +205,12 @@ const Auth = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Store
           </Link>
-          <img 
-            src={akLogo} 
-            alt="AK Fashion Hub logo" 
-            className="h-14 w-auto object-contain mx-auto mb-2"
-            loading="eager"
-          />
+          <div className="flex justify-center mb-2">
+            <span className="text-2xl font-bold">
+              <span className="text-[#1a365d]">AK</span>
+              <span className="text-[#d4a853] italic ml-1">Fashion Hub</span>
+            </span>
+          </div>
           <CardDescription>
             {message || 'Sign in or create an account to continue'}
           </CardDescription>
