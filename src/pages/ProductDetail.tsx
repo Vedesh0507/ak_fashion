@@ -424,9 +424,28 @@ const ProductDetail = () => {
     }
   };
 
-  const handleShare = async (platform: string) => {
+  const handleShare = async (platform?: string) => {
     const url = window.location.href;
     const text = `Check out ${product?.name} at AK Fashion Hub!`;
+    const title = product?.name || 'AK Fashion Hub Product';
+    
+    // If no platform specified, try native share first
+    if (!platform) {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: title,
+            text: text,
+            url: url,
+          });
+          return;
+        } catch (err) {
+          // User cancelled or share failed, fall through to show options
+          console.log('Share cancelled or failed');
+        }
+      }
+      return;
+    }
     
     const shareUrls: Record<string, string> = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`,
@@ -840,22 +859,51 @@ const ProductDetail = () => {
                 </Button>
                 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  {/* Main Share Button - opens native share on mobile */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleShare()}
+                    className="flex items-center gap-2"
+                  >
                     <Share2 className="h-4 w-4" />
-                    Share:
-                  </span>
-                  <div className="flex gap-1 flex-wrap">
-                    {['whatsapp', 'facebook', 'twitter', 'copy'].map(platform => (
-                      <Button
-                        key={platform}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleShare(platform)}
-                        className="capitalize text-xs px-2"
-                      >
-                        {platform === 'copy' ? 'Copy' : platform}
-                      </Button>
-                    ))}
+                    Share
+                  </Button>
+                  
+                  {/* Fallback share options for desktop or if native share not available */}
+                  <div className="hidden sm:flex gap-1 flex-wrap">
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Check out ${product?.name} at AK Fashion Hub! ${window.location.href}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md hover:bg-accent transition-colors"
+                    >
+                      WhatsApp
+                    </a>
+                    <a
+                      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md hover:bg-accent transition-colors"
+                    >
+                      Facebook
+                    </a>
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product?.name} at AK Fashion Hub!`)}&url=${encodeURIComponent(window.location.href)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md hover:bg-accent transition-colors"
+                    >
+                      Twitter
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShare('copy')}
+                      className="text-xs px-2"
+                    >
+                      Copy Link
+                    </Button>
                   </div>
                 </div>
               </div>
